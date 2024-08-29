@@ -1,13 +1,12 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 const WaterSimulation = () => {
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
-  const waveDataRef = useRef([]);
+  const [waves, setWaves] = useState([]);
 
   const WIDTH = 800;
   const HEIGHT = 600;
-  const WAVE_COUNT = 100;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -16,60 +15,66 @@ const WaterSimulation = () => {
     const context = canvas.getContext('2d');
     contextRef.current = context;
 
-    initializeWaves();
+    const handleTouch = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      addWave(x, y);
+    };
+
+    canvas.addEventListener('touchstart', handleTouch);
+    canvas.addEventListener('touchmove', handleTouch);
 
     const animationId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationId);
+    return () => {
+      cancelAnimationFrame(animationId);
+      canvas.removeEventListener('touchstart', handleTouch);
+      canvas.removeEventListener('touchmove', handleTouch);
+    };
   }, []);
 
-  const initializeWaves = () => {
-    for (let i = 0; i < WAVE_COUNT; i++) {
-      waveDataRef.current.push({
-        amplitude: Math.random() * 20 + 10,
-        wavelength: Math.random() * 200 + 100,
-        speed: Math.random() * 0.05 + 0.02,
-        phase: Math.random() * Math.PI * 2,
-      });
-    }
+  const addWave = (x, y) => {
+    setWaves(prevWaves => [
+      ...prevWaves,
+      {
+        x,
+        y,
+        radius: 0,
+        maxRadius: Math.random() * 100 + 50,
+        speed: Math.random() * 2 + 1,
+        opacity: 1
+      }
+    ]);
   };
 
-  const calculateWaveHeight = (x, time) => {
-    let height = 0;
-    waveDataRef.current.forEach(wave => {
-      height += wave.amplitude * Math.sin((2 * Math.PI / wave.wavelength) * (x - wave.speed * time) + wave.phase);
-    });
-    return height;
-  };
-
-  const animate = (time) => {
-    contextRef.current.clearRect(0, 0, WIDTH, HEIGHT);
-    drawWaves(time);
-    requestAnimationFrame(animate);
-  };
-
-  const drawWaves = (time) => {
+  const animate = () => {
     const ctx = contextRef.current;
-    ctx.beginPath();
-    ctx.moveTo(0, HEIGHT / 2);
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
-    for (let x = 0; x < WIDTH; x++) {
-      const y = HEIGHT / 2 + calculateWaveHeight(x, time);
-      ctx.lineTo(x, y);
-    }
-
-    ctx.lineTo(WIDTH, HEIGHT);
-    ctx.lineTo(0, HEIGHT);
-    ctx.closePath();
-
-    const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-    gradient.addColorStop(0, 'rgba(0, 119, 190, 0.8)');
-    gradient.addColorStop(1, 'rgba(0, 87, 145, 0.6)');
+    // Draw background
+    const gradient = ctx.createRadialGradient(WIDTH/2, HEIGHT/2, 0, WIDTH/2, HEIGHT/2, Math.max(WIDTH, HEIGHT)/2);
+    gradient.addColorStop(0, '#0077BE');
+    gradient.addColorStop(1, '#005691');
     ctx.fillStyle = gradient;
-    ctx.fill();
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    // Update and draw waves
+    setWaves(prevWaves => 
+      prevWaves.map(wave => {
+        wave.radius += wave.speed;
+        wave.opacity = 1 - (wave.radius / wave.maxRadius);
+
+        ctx.beginPath();
+        ctx.arc(wave.x, wave.y, wave.radius, 0, 2 * Math.PI);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${wave.opacity})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        return wave.radius < wave.maxRadius ? wave : null;
+      }).filter(Boolean)
+    );
+
+    requestAnimationFrame(animate);
   };
 
   return (
