@@ -4,6 +4,7 @@ const WaterSimulation = () => {
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
   const [waves, setWaves] = useState([]);
+  const [debugMessages, setDebugMessages] = useState([]);
 
   const WIDTH = 800;
   const HEIGHT = 600;
@@ -17,10 +18,10 @@ const WaterSimulation = () => {
 
     const handleInteraction = (e) => {
       const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX || e.touches[0].clientX) - rect.left;
-      const y = (e.clientY || e.touches[0].clientY) - rect.top;
+      const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+      const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
       addWave(x, y);
-      console.log('Interaction detected:', { x, y }); // Debug log
+      addDebugMessage(`Interaction at (${x.toFixed(2)}, ${y.toFixed(2)})`);
     };
 
     canvas.addEventListener('mousedown', handleInteraction);
@@ -40,6 +41,10 @@ const WaterSimulation = () => {
     };
   }, []);
 
+  const addDebugMessage = (message) => {
+    setDebugMessages(prev => [...prev.slice(-4), message]);
+  };
+
   const addWave = (x, y) => {
     const newWave = {
       x,
@@ -50,7 +55,7 @@ const WaterSimulation = () => {
       opacity: 1
     };
     setWaves(prevWaves => [...prevWaves, newWave]);
-    console.log('Wave added:', newWave); // Debug log
+    addDebugMessage(`Wave added at (${x.toFixed(2)}, ${y.toFixed(2)})`);
   };
 
   const animate = () => {
@@ -79,6 +84,13 @@ const WaterSimulation = () => {
         return wave.radius < wave.maxRadius ? wave : null;
       }).filter(Boolean)
     );
+
+    // Draw debug messages
+    ctx.fillStyle = 'white';
+    ctx.font = '14px Arial';
+    debugMessages.forEach((msg, index) => {
+      ctx.fillText(msg, 10, 20 + index * 20);
+    });
 
     requestAnimationFrame(animate);
   };
