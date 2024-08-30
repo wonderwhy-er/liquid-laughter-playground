@@ -50,9 +50,10 @@ const WaterSimulation = () => {
       x,
       y,
       radius: 0,
-      maxRadius: Math.random() * 100 + 50,
-      speed: Math.random() * 2 + 1,
-      opacity: 1
+      maxRadius: Math.random() * 150 + 100, // Increased max radius
+      speed: Math.random() * 3 + 2, // Increased speed
+      opacity: 1,
+      color: `hsl(${Math.random() * 60 + 180}, 100%, 50%)`, // Random blue-green color
     };
     setWaves(prevWaves => [...prevWaves, newWave]);
     addDebugMessage(`Wave added at (${x.toFixed(2)}, ${y.toFixed(2)})`);
@@ -77,9 +78,11 @@ const WaterSimulation = () => {
 
         ctx.beginPath();
         ctx.arc(wave.x, wave.y, wave.radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${wave.opacity})`;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = wave.color;
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = wave.opacity;
         ctx.stroke();
+        ctx.globalAlpha = 1;
 
         return wave.radius < wave.maxRadius ? wave : null;
       }).filter(Boolean)
@@ -87,10 +90,15 @@ const WaterSimulation = () => {
 
     // Draw debug messages
     ctx.fillStyle = 'white';
-    ctx.font = '14px Arial';
+    ctx.font = 'bold 16px Arial';
     debugMessages.forEach((msg, index) => {
-      ctx.fillText(msg, 10, 20 + index * 20);
+      ctx.fillText(msg, 10, 30 + index * 25);
     });
+
+    // Draw wave count
+    ctx.fillStyle = 'yellow';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(`Active Waves: ${waves.length}`, 10, HEIGHT - 20);
 
     requestAnimationFrame(animate);
   };
@@ -99,7 +107,7 @@ const WaterSimulation = () => {
     <div className="flex justify-center items-center h-screen bg-gray-900">
       <canvas
         ref={canvasRef}
-        className="border border-blue-300 shadow-lg rounded-lg"
+        className="border border-blue-300 shadow-lg rounded-lg cursor-pointer"
       />
     </div>
   );
