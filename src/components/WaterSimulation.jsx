@@ -15,36 +15,42 @@ const WaterSimulation = () => {
     const context = canvas.getContext('2d');
     contextRef.current = context;
 
-    const handleTouch = (e) => {
+    const handleInteraction = (e) => {
       const rect = canvas.getBoundingClientRect();
-      const x = e.touches[0].clientX - rect.left;
-      const y = e.touches[0].clientY - rect.top;
+      const x = (e.clientX || e.touches[0].clientX) - rect.left;
+      const y = (e.clientY || e.touches[0].clientY) - rect.top;
       addWave(x, y);
+      console.log('Interaction detected:', { x, y }); // Debug log
     };
 
-    canvas.addEventListener('touchstart', handleTouch);
-    canvas.addEventListener('touchmove', handleTouch);
+    canvas.addEventListener('mousedown', handleInteraction);
+    canvas.addEventListener('touchstart', handleInteraction);
+    canvas.addEventListener('mousemove', (e) => {
+      if (e.buttons === 1) handleInteraction(e);
+    });
+    canvas.addEventListener('touchmove', handleInteraction);
 
     const animationId = requestAnimationFrame(animate);
     return () => {
       cancelAnimationFrame(animationId);
-      canvas.removeEventListener('touchstart', handleTouch);
-      canvas.removeEventListener('touchmove', handleTouch);
+      canvas.removeEventListener('mousedown', handleInteraction);
+      canvas.removeEventListener('touchstart', handleInteraction);
+      canvas.removeEventListener('mousemove', handleInteraction);
+      canvas.removeEventListener('touchmove', handleInteraction);
     };
   }, []);
 
   const addWave = (x, y) => {
-    setWaves(prevWaves => [
-      ...prevWaves,
-      {
-        x,
-        y,
-        radius: 0,
-        maxRadius: Math.random() * 100 + 50,
-        speed: Math.random() * 2 + 1,
-        opacity: 1
-      }
-    ]);
+    const newWave = {
+      x,
+      y,
+      radius: 0,
+      maxRadius: Math.random() * 100 + 50,
+      speed: Math.random() * 2 + 1,
+      opacity: 1
+    };
+    setWaves(prevWaves => [...prevWaves, newWave]);
+    console.log('Wave added:', newWave); // Debug log
   };
 
   const animate = () => {
